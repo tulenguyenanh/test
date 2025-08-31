@@ -50,7 +50,7 @@ const ProductDataPlatform: React.FC = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [totalItems, setTotalItems] = useState(0);
 
   // UI state
@@ -148,7 +148,6 @@ const ProductDataPlatform: React.FC = () => {
           limit: itemsPerPage,
         },
       };
-      
 
       // Add filters if any
       if (Object.keys(activeFilters).length > 0 || searchTerm) {
