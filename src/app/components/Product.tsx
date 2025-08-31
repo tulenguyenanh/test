@@ -5,12 +5,10 @@ import { Product } from "@/app/types/product";
 import { SupplierAttribute } from "@/app/types/attribute";
 import { ProductQuery } from "@/app/types/query-engine/product";
 import { InternalQueryResponse } from "@/app/types/query-engine/common";
-import ErrorBoundary from "./ErrorBoundary";
 import { ProductTable } from "./ProductTable";
 import { FilterPanel } from "./FilterPanel";
 import { ColumnManager } from "./ColumnManager";
 import { SearchBar } from "./SearchBar";
-import { usePerformanceMonitor } from "../hooks/usePerformanceMonitor";
 import { mockAttributes } from "@/app/mockData/mock-attributes";
 
 // Types for our UI components
@@ -33,8 +31,6 @@ export interface SavedFilter {
 }
 
 const ProductDataPlatform: React.FC = () => {
-  const { startMeasure, endMeasure } = usePerformanceMonitor();
-
   // Core data state
   const [products, setProducts] = useState<Product[]>([]);
   const [attributes, setAttributes] = useState<SupplierAttribute[]>([]);
@@ -62,33 +58,40 @@ const ProductDataPlatform: React.FC = () => {
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [showSaveFilterDialog, setShowSaveFilterDialog] = useState(false);
 
-  // Load initial data
+  // Add state to track if URL parameters have been loaded
+  const [urlParamsLoaded, setUrlParamsLoaded] = useState(false);
+
+  // Load URL parameters on mount FIRST
   useEffect(() => {
-    loadAttributes();
-    loadProducts();
+    const loadUrlParams = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const search = urlParams.get("search");
+      const filters: FilterState = {};
+
+      for (const [key, value] of urlParams.entries()) {
+        if (key.startsWith("filter_")) {
+          const filterKey = key.replace("filter_", "");
+          filters[filterKey] = value;
+        }
+      }
+
+      if (search) setSearchTerm(search);
+      if (Object.keys(filters).length > 0) setActiveFilters(filters);
+
+      // Mark URL params as loaded
+      setUrlParamsLoaded(true);
+    };
+
+    loadUrlParams();
   }, []);
 
-  // Load URL parameters on mount
+  // Load initial attributes (this can happen in parallel)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const search = urlParams.get("search");
-    const filters: FilterState = {};
-
-    for (const [key, value] of urlParams.entries()) {
-      if (key.startsWith("filter_")) {
-        const filterKey = key.replace("filter_", "");
-        filters[filterKey] = value;
-      }
-    }
-
-    if (search) setSearchTerm(search);
-    if (Object.keys(filters).length > 0) setActiveFilters(filters);
+    loadAttributes();
   }, []);
 
   // Load attributes for filter configuration
   const loadAttributes = async () => {
-    const measureId = startMeasure("loadAttributes");
-
     try {
       const response = await fetch("/api/attributes", {
         method: "POST",
@@ -126,14 +129,15 @@ const ProductDataPlatform: React.FC = () => {
       }
     } catch (err) {
       setError("Failed to load attributes: " + (err as Error).message);
-    } finally {
-      endMeasure(measureId);
     }
   };
 
   // Load products with current filters
   const loadProducts = useCallback(async () => {
-    const measureId = startMeasure("loadProducts");
+    if (!urlParamsLoaded) {
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -144,6 +148,7 @@ const ProductDataPlatform: React.FC = () => {
           limit: itemsPerPage,
         },
       };
+      
 
       // Add filters if any
       if (Object.keys(activeFilters).length > 0 || searchTerm) {
@@ -162,7 +167,7 @@ const ProductDataPlatform: React.FC = () => {
             if (!query.filter!.attributes) {
               query.filter!.attributes = {};
             }
-            console.log(key, value);
+
             if (key === "createdAt") {
               query.filter![key] = { $eq: value as number };
             } else {
@@ -197,25 +202,22 @@ const ProductDataPlatform: React.FC = () => {
       setError("Failed to load products: " + (err as Error).message);
     } finally {
       setLoading(false);
-      endMeasure(measureId);
     }
-  }, [
-    currentPage,
-    itemsPerPage,
-    activeFilters,
-    searchTerm,
-    startMeasure,
-    endMeasure,
-  ]);
+  }, [currentPage, itemsPerPage, activeFilters, searchTerm, urlParamsLoaded]);
 
-  // Reload products when filters change
+  // Only load products after URL params have been loaded
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [activeFilters, searchTerm]);
+    if (urlParamsLoaded) {
+      loadProducts();
+    }
+  }, [loadProducts, urlParamsLoaded]);
 
+  // Reset to first page when filters change
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    if (urlParamsLoaded) {
+      setCurrentPage(1);
+    }
+  }, [activeFilters, searchTerm, urlParamsLoaded]);
 
   // Get attribute value from product
   const getAttributeValue = (
@@ -251,6 +253,13 @@ const ProductDataPlatform: React.FC = () => {
   const clearAllFilters = () => {
     setActiveFilters({});
     setSearchTerm("");
+
+    // Clear URL parameters
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.search = ""; // Clear all query parameters
+      window.history.replaceState({}, "", url.toString());
+    }
   };
 
   // Save current filter
@@ -302,143 +311,153 @@ const ProductDataPlatform: React.FC = () => {
     Object.entries(activeFilters).forEach(([key, value]) => {
       params.set(`filter_${key}`, String(value));
     });
+    alert("View Copied to dashboard");
     return `${window.location.origin}${
       window.location.pathname
     }?${params.toString()}`;
   };
 
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Trustana Product Platform
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Manage and explore your product data
-                </p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Trustana Product Platform
+              </h1>
+              <p className="text-sm text-gray-600">
+                Manage and explore your product data
+              </p>
+            </div>
 
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setShowFilterPanel(!showFilterPanel)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {showFilterPanel ? "Hide Filters" : "Show Filters"}
-                </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowFilterPanel(!showFilterPanel)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                {showFilterPanel ? "Hide Filters" : "Show Filters"}
+              </button>
 
-                <button
-                  onClick={() => setShowColumnManager(!showColumnManager)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Manage Columns
-                </button>
-              </div>
+              <button
+                onClick={() => setShowColumnManager(!showColumnManager)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Manage Columns
+              </button>
             </div>
           </div>
-        </header>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Search Bar */}
-          <SearchBar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            activeFilters={activeFilters}
-            onClearFilters={clearAllFilters}
-            onSaveFilter={() => setShowSaveFilterDialog(true)}
-            onShareUrl={generateShareableUrl}
-          />
-
-          {/* Filter Panel */}
-          {showFilterPanel && (
-            <FilterPanel
-              attributes={attributes}
-              activeFilters={activeFilters}
-              savedFilters={savedFilters}
-              onFilterChange={handleFilterChange}
-              onLoadSavedFilter={loadSavedFilter}
-              onClearAllFilters={clearAllFilters}
-            />
-          )}
-
-          {/* Column Manager */}
-          {showColumnManager && (
-            <ColumnManager
-              columns={columns}
-              onToggleColumn={toggleColumnVisibility}
-            />
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-
-          {/* Products Table */}
-          <ProductTable
-            products={products}
-            visibleColumns={visibleColumns}
-            selectedProducts={selectedProducts}
-            loading={loading}
-            totalItems={totalItems}
-            currentPage={currentPage}
-            itemsPerPage={itemsPerPage}
-            onSelectionChange={setSelectedProducts}
-            onPageChange={setCurrentPage}
-            onItemsPerPageChange={handleItemsPerPageChange}
-            getAttributeValue={getAttributeValue}
-          />
         </div>
+      </header>
 
-        {/* Save Filter Dialog */}
-        {showSaveFilterDialog && (
-          <div className="fixed inset-0 bg-black/20 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">
-                Save Current Filter
-              </h3>
-              <input
-                type="text"
-                placeholder="Filter name..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    saveCurrentFilter((e.target as HTMLInputElement).value);
-                  }
-                }}
-              />
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={() => setShowSaveFilterDialog(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    const input = document.querySelector(
-                      'input[placeholder="Filter name..."]'
-                    ) as HTMLInputElement;
-                    if (input?.value) {
-                      saveCurrentFilter(input.value);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Show loading state while URL params are being processed */}
+        {!urlParamsLoaded && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Loading...</span>
           </div>
         )}
+
+        {/* Only show the rest of the interface after URL params are loaded */}
+        {urlParamsLoaded && (
+          <>
+            {/* Search Bar */}
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              activeFilters={activeFilters}
+              onClearFilters={clearAllFilters}
+              onSaveFilter={() => setShowSaveFilterDialog(true)}
+              onShareUrl={generateShareableUrl}
+            />
+
+            {/* Filter Panel */}
+            {showFilterPanel && (
+              <FilterPanel
+                attributes={attributes}
+                activeFilters={activeFilters}
+                savedFilters={savedFilters}
+                onFilterChange={handleFilterChange}
+                onLoadSavedFilter={loadSavedFilter}
+                onClearAllFilters={clearAllFilters}
+              />
+            )}
+
+            {/* Column Manager */}
+            {showColumnManager && (
+              <ColumnManager
+                columns={columns}
+                onToggleColumn={toggleColumnVisibility}
+              />
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+
+            {/* Products Table */}
+            <ProductTable
+              products={products}
+              visibleColumns={visibleColumns}
+              selectedProducts={selectedProducts}
+              loading={loading}
+              totalItems={totalItems}
+              currentPage={currentPage}
+              itemsPerPage={itemsPerPage}
+              onSelectionChange={setSelectedProducts}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              getAttributeValue={getAttributeValue}
+            />
+          </>
+        )}
       </div>
-    </ErrorBoundary>
+
+      {/* Save Filter Dialog */}
+      {showSaveFilterDialog && (
+        <div className="fixed inset-0 bg-black/20 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Save Current Filter</h3>
+            <input
+              type="text"
+              placeholder="Filter name..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  saveCurrentFilter((e.target as HTMLInputElement).value);
+                }
+              }}
+            />
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setShowSaveFilterDialog(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const input = document.querySelector(
+                    'input[placeholder="Filter name..."]'
+                  ) as HTMLInputElement;
+                  if (input?.value) {
+                    saveCurrentFilter(input.value);
+                  }
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
