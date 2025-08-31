@@ -75,6 +75,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   const renderPaginationButton = (page: number, label?: string) => (
     <button
       key={page}
+      data-testid={`page-${page}`}
       onClick={() => onPageChange(page)}
       className={`px-3 py-2 text-sm font-medium rounded-md ${
         currentPage === page
@@ -132,7 +133,10 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div
+      data-testid="products-table"
+      className="bg-white rounded-lg shadow overflow-hidden"
+    >
       {/* Table Header with Stats */}
       <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
         <div className="flex justify-between items-center">
@@ -230,6 +234,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               products.map((product) => (
                 <tr
                   key={product.id}
+                  data-testid="product-row"
                   className={`hover:bg-gray-50 transition-colors ${
                     selectedProducts.has(product.id) ? "bg-blue-50" : ""
                   }`}
@@ -280,6 +285,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">Show</span>
               <select
+                data-testid="items-per-page-select"
                 value={itemsPerPage}
                 onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
                 className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -294,12 +300,15 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
             {/* Page info */}
             <div className="text-sm text-gray-700">
-              Showing {startItem} to {endItem} of {totalItems} results
+              <span data-testid="page-info">
+                Page {currentPage} of {totalPages}
+              </span>
             </div>
 
             {/* Page navigation */}
             <div className="flex items-center space-x-1">
               <button
+                data-testid="previous-page"
                 onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
@@ -310,6 +319,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
               {renderPagination()}
 
               <button
+                data-testid="next-page"
                 onClick={() =>
                   onPageChange(Math.min(totalPages, currentPage + 1))
                 }

@@ -55,6 +55,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               </svg>
             </div>
             <input
+              data-testid="search-input"
               type="text"
               placeholder="Search products by name, brand, or any attribute..."
               value={searchTerm}
@@ -67,14 +68,16 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <div className="flex items-center space-x-2">
           {Object.keys(activeFilters).length > 0 && (
             <button
+              data-testid="clear-filters-button"
               onClick={onClearFilters}
               className="px-3 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
             >
-              Clear Filters ({Object.keys(activeFilters).length})
+              Clear All Filters ({Object.keys(activeFilters).length})
             </button>
           )}
 
           <button
+            data-testid="save-filter-button"
             onClick={onSaveFilter}
             disabled={Object.keys(activeFilters).length === 0 && !searchTerm}
             className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
@@ -83,6 +86,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </button>
 
           <button
+            data-testid="share-url-button"
             onClick={handleShare}
             className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
           >
@@ -93,12 +97,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
       {/* Active filters display */}
       {Object.keys(activeFilters).length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div data-testid="filter-tags" className="mt-4 flex flex-wrap gap-2">
           {Object.entries(activeFilters).map(([key, value]) => (
             <>
               {value && (
                 <span
                   key={key}
+                  data-testid="filter-tag"
                   className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
                 >
                   {key}: {String(value)}

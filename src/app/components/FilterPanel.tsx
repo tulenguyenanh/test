@@ -33,18 +33,21 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       label: "Brand",
       type: "text",
       placeholder: "Filter by brand (e.g., Apple, Samsung)",
+      testId: "brand-filter",
     },
     {
       key: "_basicInfoProductNameColor",
       label: "Color",
       type: "text",
       placeholder: "Filter by color (e.g., Black, White, Blue)",
+      testId: "color-filter",
     },
     {
       key: "_basicInfoGeneralCategory",
       label: "Product Category",
       type: "text",
       placeholder: "Filter by category path",
+      testId: "category-filter",
     },
   ];
 
@@ -69,6 +72,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       case "text":
         return (
           <input
+            data-testid={filter.testId}
             type="text"
             value={String(value || "")}
             onChange={(e) => onFilterChange(filter.key, e.target.value)}
@@ -80,6 +84,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
       default:
         return (
           <input
+            data-testid={filter.testId}
             type="text"
             value={String(value || "")}
             onChange={(e) => onFilterChange(filter.key, e.target.value)}
@@ -95,7 +100,10 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
   ).length;
 
   return (
-    <div className="mb-6 bg-white rounded-lg shadow p-6">
+    <div
+      data-testid="filter-panel"
+      className="mb-6 bg-white rounded-lg shadow p-6"
+    >
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
@@ -109,6 +117,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
 
         {activeFilterCount > 0 && (
           <button
+            data-testid="clear-all-filters"
             onClick={onClearAllFilters}
             className="px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 text-sm"
           >
@@ -143,6 +152,7 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             </label>
             <div className="flex space-x-2">
               <input
+                data-testid="date-filter"
                 type="date"
                 value={dateRange}
                 onChange={(e) =>
@@ -196,6 +206,9 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
             {savedFilters.map((filter) => (
               <button
                 key={filter.id}
+                data-testid={`saved-filter-${filter.name
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}`}
                 onClick={() => onLoadSavedFilter(filter)}
                 className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                 title={`Created: ${new Date(
