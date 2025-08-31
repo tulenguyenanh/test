@@ -95,18 +95,22 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {Object.keys(activeFilters).length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2">
           {Object.entries(activeFilters).map(([key, value]) => (
-            <span
-              key={key}
-              className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-            >
-              {key}: {String(value)}
-              <button
-                onClick={() => onClearFilters()}
-                className="ml-2 text-blue-600 hover:text-blue-800"
-              >
-                ×
-              </button>
-            </span>
+            <>
+              {value && (
+                <span
+                  key={key}
+                  className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                >
+                  {key}: {String(value)}
+                  <button
+                    onClick={() => onClearFilters()}
+                    className="ml-2 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </>
           ))}
         </div>
       )}

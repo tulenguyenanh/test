@@ -54,7 +54,7 @@ const ProductDataPlatform: React.FC = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(100); // As per requirements
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
 
   // UI state
@@ -149,32 +149,38 @@ const ProductDataPlatform: React.FC = () => {
       if (Object.keys(activeFilters).length > 0 || searchTerm) {
         query.filter = {};
 
-        // Add search term filter (search in product name and brand)
+        // Add search term filter (search in product name, brand, and other text attributes)
         if (searchTerm) {
           query.filter.attributes = {
             name: { $regex: searchTerm },
           };
         }
 
-        // Add other filters
+        // Add other filters with smart handling
         Object.entries(activeFilters).forEach(([key, value]) => {
           if (value !== "" && value !== null && value !== undefined) {
             if (!query.filter!.attributes) {
               query.filter!.attributes = {};
             }
-
-            if (typeof value === "string") {
-              query.filter!.attributes![key] = { $regex: value };
-            } else if (typeof value === "number") {
-              query.filter!.attributes![key] = { $eq: value };
-            } else if (Array.isArray(value)) {
-              query.filter!.attributes![key] = { $in: value };
+            console.log(key, value);
+            if (key === "createdAt") {
+              query.filter![key] = { $eq: value as number };
             } else {
-              query.filter!.attributes![key] = { $eq: value };
+              if (typeof value === "string") {
+                query.filter!.attributes![key] = { $regex: value };
+              } else if (typeof value === "number") {
+                query.filter!.attributes![key] = { $eq: value };
+              } else if (Array.isArray(value)) {
+                query.filter!.attributes![key] = { $in: value };
+              } else {
+                query.filter!.attributes![key] = { $eq: value };
+              }
             }
           }
         });
       }
+
+      delete query.filter?.attributes?.searchTerm;
 
       const response = await fetch("/api/products", {
         method: "POST",
@@ -277,16 +283,17 @@ const ProductDataPlatform: React.FC = () => {
     );
   };
 
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   // Visible columns for rendering
   const visibleColumns = useMemo(
     () => columns.filter((col) => col.visible),
     [columns]
   );
-
-  // Pagination helpers
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
   // Generate shareable URL
   const generateShareableUrl = () => {
@@ -354,6 +361,7 @@ const ProductDataPlatform: React.FC = () => {
               savedFilters={savedFilters}
               onFilterChange={handleFilterChange}
               onLoadSavedFilter={loadSavedFilter}
+              onClearAllFilters={clearAllFilters}
             />
           )}
 
@@ -383,13 +391,14 @@ const ProductDataPlatform: React.FC = () => {
             itemsPerPage={itemsPerPage}
             onSelectionChange={setSelectedProducts}
             onPageChange={setCurrentPage}
+            onItemsPerPageChange={handleItemsPerPageChange}
             getAttributeValue={getAttributeValue}
           />
         </div>
 
         {/* Save Filter Dialog */}
         {showSaveFilterDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/20 bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 w-full max-w-md">
               <h3 className="text-lg font-semibold mb-4">
                 Save Current Filter

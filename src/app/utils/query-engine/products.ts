@@ -91,6 +91,7 @@ export class ProductQueryEngine {
     filterValue: InternalFilterValue
   ): boolean {
     // For fixed product fields
+    console.log({ field });
     if (["id", "skuId", "updatedAt", "createdAt"].includes(field)) {
       const productValue = product[field as keyof Product];
       return this.evaluateCondition(productValue, filterValue);

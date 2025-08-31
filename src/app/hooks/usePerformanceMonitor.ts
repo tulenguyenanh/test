@@ -19,13 +19,6 @@ export const usePerformanceMonitor = () => {
       // Track Core Web Vitals
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          // Log performance metrics
-          console.log(`Performance: ${entry.name}`, {
-            value: entry.startTime,
-            rating: getRating(entry.name, entry.startTime),
-            timestamp: Date.now(),
-          });
-
           // Dispatch custom event for external monitoring
           window.dispatchEvent(
             new CustomEvent("performance-metric", {
@@ -97,14 +90,6 @@ export const usePerformanceMonitor = () => {
         console.warn("Performance measure failed:", e);
       }
     }
-
-    // Log performance data
-    console.log(`Performance Measure: ${measure.name}`, {
-      duration,
-      startTime: measure.startTime,
-      endTime,
-      timestamp: Date.now(),
-    });
 
     // Dispatch custom event
     if (typeof window !== "undefined") {

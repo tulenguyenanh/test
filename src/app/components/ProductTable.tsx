@@ -14,6 +14,7 @@ interface ProductTableProps {
   itemsPerPage: number;
   onSelectionChange: (selected: Set<string>) => void;
   onPageChange: (page: number) => void;
+  onItemsPerPageChange: (itemsPerPage: number) => void;
   getAttributeValue: (product: Product, attributeKey: string) => string;
 }
 
@@ -27,6 +28,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   itemsPerPage,
   onSelectionChange,
   onPageChange,
+  onItemsPerPageChange,
   getAttributeValue,
 }) => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -273,11 +275,29 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="bg-white px-6 py-3 border-t border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Items per page selector */}
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-700">Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-700">per page</span>
+            </div>
+
+            {/* Page info */}
             <div className="text-sm text-gray-700">
               Showing {startItem} to {endItem} of {totalItems} results
             </div>
 
+            {/* Page navigation */}
             <div className="flex items-center space-x-1">
               <button
                 onClick={() => onPageChange(Math.max(1, currentPage - 1))}
