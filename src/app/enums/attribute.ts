@@ -1,0 +1,32 @@
+export enum AttributeFieldType {
+  TEXT = "TEXT",
+  DATE = "DATE",
+  DATETIME = "DATETIME",
+  NUMBER = "NUMBER",
+  PRICE = "PRICE",
+  URL = "URL",
+  MEASURE = "MEASURE",
+  RICH_TEXT = "RICH_TEXT",
+  LONG_TEXT = "LONG_TEXT",
+  MULTI_SELECT = "MULTI_SELECT",
+  DROPDOWN = "DROPDOWN",
+  MEDIA_GALLERY = "MEDIA_GALLERY",
+  TREE_NODE = "TREE_NODE",
+}
+
+export enum AttributeGroup {
+  BASIC_INFO = "Basic Info",
+  SPECIFICATIONS = "Specifications",
+  SAFETY_AND_COMPLIANCE = "Safety & Compliance",
+  DESCRIPTIONS = "Descriptions",
+  MARKETING = "Marketing",
+  VARIANTS = "Variants",
+  MAGENTO = "Magento",
+  SHOPIFY = "Shopify",
+  WOOCOMMERCE = "WooCommerce",
+  SHOPEE = "Shopee",
+  LAZADA = "Lazada",
+  AMAZON = "Amazon",
+  PRICING_AND_INVENTORY = "Pricing & Inventory",
+  SHIPPING = "Shipping",
+}
